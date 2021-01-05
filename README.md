@@ -19,6 +19,7 @@ Como mostrado na figura 1, o gerenciamento de estados do Lunatik é oferecido ta
 O gerenciamento de estados do Lunatik é feito em seus respectivos ambientes, cada ambiente possui seu próprio conjunto de estados fazendo com que os ambientes sejam isolados entre si, a figura 2 dá uma noção em alto nível como é feito esse isolamento.
 
 ![Fig2. Estrutura geral dos ambientes Lunatik](https://i.ibb.co/pbDs7vJ/linux.png)
+
 Fig 2. Estrutura geral dos ambientes Lunatik
 
 ## Operações oferecidas pela API
