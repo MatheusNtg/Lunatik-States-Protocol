@@ -1,8 +1,6 @@
 
 # Lunatik States Management Protocol
 
----
-
 ## Introdução
 
 Este documento tem por objetivo definir e documentar o funcionamento do protocolo de gerenciamento de estados do Lunatik (Lunatik States Management Protocol). Este protocolo por sua vez tem o propósito de oferecer uma interface para as operações relacionadas a estados no ambiente do Lunatik, tanto para o Kernel por meio de uma **API** quanto para o espaço de usuário por meio de um **binding** Lua. 
@@ -11,34 +9,17 @@ Este documento tem por objetivo definir e documentar o funcionamento do protocol
 
 A figura a seguir apresenta a estrutura geral do gerenciamento de estados do Lunatik:
 
-```
------------------------------------------------------
-|                      User Space                   |
-|                                                   |
-|---------------------------                        |
-| Binding Lua para Lunatik |                        |
------------------------------------------------------
-    |    ^
-    |    |
-    |    |
-    |    |
-    |    |
-    v    |
------------------------------------------------------
-| Módulo Lunatik  | <----API---->  | Outros módulos |
-|---------------------------------------------------|
-|                                                   |
-|                                                   |
-|                      Kernel                       |
------------------------------------------------------
-```
+![enter image description here](https://i.ibb.co/dmtTbVQ/estrutura-geral-1.png)
 
 Figura 1. Estrutura geral do funcionamento do gerenciamento de estados no Lunatik
 
 Como mostrado na figura 1, o gerenciamento de estados do Lunatik é oferecido tanto no espaço de usuário, com um binding para Lua, quanto para o Kernel, por meio de API que pode ser consumida pelos outros módulos do Kernel. 
 
 ## Ambientes Lunatik
-O gerenciamento de estados do Lunatik é feito em seus respectivos ambientes, cada ambiente possui seu próprio conjunto de estados 
+O gerenciamento de estados do Lunatik é feito em seus respectivos ambientes, cada ambiente possui seu próprio conjunto de estados fazendo com que os ambientes sejam isolados entre si, a figura 2 dá uma noção em alto nível como é feito esse isolamento.
+
+![Fig2. Estrutura geral dos ambientes Lunatik](https://i.ibb.co/pbDs7vJ/linux.png)
+Fig 2. Estrutura geral dos ambientes Lunatik
 
 ## Operações oferecidas pela API
 
@@ -56,4 +37,4 @@ O gerenciamento de estados do Lunatik é feito em seus respectivos ambientes, ca
 ## <a name="glossary"></a>Glossário
 
 - <a name="estado_lunatik"></a>**Estado Lunatik:** Um estado Lunatik é uma estrutura de dados opaca que serve como uma capsula para os estados Lua e tem o propósito de abstrair todas as operações relacionadas ao gerenciamento de estados em Lua.
-- <a name="ambientes_lunatik"></a> **Ambiente Lunatik:** Um ambiente Lunatik é uma instância de armazenamento de estados do Lunatik. Em outras palavras, a estrutura usada pelo Lunatik para armazenar seus estados estará sempre associada a um net namespace, mesmo que não especificada pelo usuário, neste caso, estará associada ao net namespace do processo `init` do Linux. Isso faz com que o Lunatik possa prover aos seus usuários um isolamento de recursos.
+- <a name="ambientes_lunatik"></a> **Ambiente Lunatik:** Um ambiente Lunatik é uma instância de armazenamento de estados do Lunatik. Em outras palavras, a estrutura usada pelo Lunatik para armazenar seus estados estará sempre associada a um net namespace, mesmo que não especificada pelo usuário, neste caso, estará associada ao net namespace do processo `init` do Linux. Isso faz com que o Lunatik possa provêr aos seus usuários um isolamento de recursos.
