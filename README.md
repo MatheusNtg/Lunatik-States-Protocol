@@ -23,6 +23,7 @@ Já a API de gerenciamento de estados provê uma interface para o controle dos e
 O gerenciamento de estados do Lunatik é feito em seus respectivos ambientes, cada ambiente possui seu próprio conjunto de estados fazendo com que os ambientes sejam isolados entre si, a figura 2 dá uma noção em alto nível como é feito esse isolamento. Para maiores informações sobre ambientes Lunatik consulte o glossário [aqui](#ambientes_lunatik).
 
 ![Fig2. Estrutura geral dos ambientes Lunatik](https://i.ibb.co/pbDs7vJ/linux.png)
+
 Fig 2. Estrutura geral dos ambientes Lunatik
 
 Como cada ambiente possui seus próprios conjuntos de estados, isso implica que esses conjuntos são isolados e não se comunicam entre si. Isso faz com que a existência de dois estados Lunatik com o mesmo nome seja possível, desde que estes estados estejam associados a ambientes diferentes.
