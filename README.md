@@ -49,6 +49,59 @@ Assim como descrito na seção acima, o Lunatik possui o conceito de ambientes, 
  - **Devolução de referência:** Decrementa o contador de referência de um estado. Assim que uma determinada operação com o estado Lunatik for concluída, a referência obtida por meio da função `lunatik_getstate()` deve ser devolvida a fim de evitar inconsistências. Assim como a operação anterior, esta operação tem o ambiente implicitamente passado, pois ele está ligado ao estado passado à função, tornando desnecessário a passagem deste parâmetro para a função.
 	 - Assinatura da função: `void lunatik_putstate(lunatik_State *state)`
 
+## Protocolo de comunicação user space-kernel
+
+Como mostrado na figura 1, um binding Lua é oferecido no espaço de usuário para realizar operações de gerenciamento de estados no kernel. Para que isso seja possível um processo de comunicação entre processos deve ser adotado, e no nosso caso o Generic Netlink foi o mecanismo escolhido, juntamente com a biblioteca [libnl](https://www.infradead.org/~tgr/libnl/) no espaço de usuário, que já implementa várias funcionalidades comumente usadas.  A estrutura geral da comunicação entre o espaço de usuário e o kernel é mostrada na figura a seguir:
+
+![enter image description here](https://i.ibb.co/pWZ4qWG/estrutura-geral-protocolo.png)
+
+Figura 3. Estrutura geral da comunicação entre o binding Lua e o Lunatik
+### Pacotes Lunatik
+Uma comunicação através de pacotes de controle e de dados é realizada a fim de obter as funcionalidades providas pelo gerenciador de estados no espaço de usuário, a estrutura lógica destes pacotes é a seguinte: Um pacote lunatik é uma classe abstrata de pacotes, sendo as suas respectivas instâncias os pacotes de controle e os de dados, diferindo um do outro somente pelo campo tipo presente na estrutura de pacotes. Fisicamente (i.e implementado), a estrutura de um pacote lunatik é a seguinte:
+
+```c
+struct lunatik_packet {
+	char state_name[LUNATIK_NAME_MAXSIZE];
+	enum lunatik_packet_type type;
+	enum lunatik_operations operation;
+	size_t len;
+	void *associated_value;
+};
+```
+Cujos os campos têm os significados:
+- `state_name`: O nome do estado cujo a operação será realizada;
+- `type`: O tipo do pacote lunatik;
+- `operation`: A operação a ser realizada no gerenciador de estados;
+- `len`: O tamanho do pacote;
+- `associated_value`: Ponteiro para valores associados a determinadas operações que precisam de dados extras aos fornecidos na estrutura.
+## Tipos de pacotes:
+Como dito na seção anterior, só existem dois tipos de pacotes, sendo eles os de controle e os de dados, dessa forma, o campo `type` da estrutura `struct lunatik_packet` tem o seguinte formato:
+```c
+enum lunatik_packet_type {
+	LUNATIK_CONTROL,
+	LUNATIK_DATA
+};
+``` 
+## Operações
+Nesta seção será discutido os detalhes de implementação dos pacotes das operações. Para isso precisamos entender quais são os tipos de operações disponíveis no gerenciamento de estado, que está definido na enumeração `enum lunatik_operations`   e que possui seu representante na `struct lunatik_packet` chamado de `operation`.
+```c
+enum lunatik_operations {
+	LUNATIK_NEWSTATE = 1,
+	LUNATIK_CLOSE,
+	LUNATIK_DOSTRING,
+	LUNATIK_GETSTATE,
+	LUNATIK_PUTSTATE,
+	LUNATIK_DATA
+};
+```
+Uma vez definido os tipos de operações presentes nos pacotes podemos especificar os detalhes de cada uma delas.
+### `LUNATIK_NEWSTATE`
+Operação responsável pela criação de estados, e assim como definido na seção de operações oferecidas pelo gerenciamento de estados, essa operação necessita do nome do estado que servirá como ID para o estado e de um alocamento máximo de memória que será usado para determinar qual será o valor máximo de memória que este estado poderá utilizar no kernel.  Para realizar tal funcionalidade, o campo `associated_value` desta operação aponta para o alocamento máximo utilizado pelo estado.
+### `LUNATIK_CLOSE`
+Operação responsável pela deleção de estados existentes, essa operação não necessita de nenhum valor associado além dos presentes na estrutura `struct lunatik_packet`. 
+### `LUNATIK_DOSTRING`
+
+
 ## <a name="glossary"></a>Glossário
 
 - <a name="estado_lunatik"></a>**Estado Lunatik:** Um estado Lunatik é uma estrutura de dados opaca que serve como uma capsula para os estados Lua e tem o propósito de abstrair todas as operações relacionadas ao gerenciamento de estados em Lua.
