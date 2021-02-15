@@ -13,7 +13,7 @@ A figura a seguir apresenta a estrutura geral do gerenciamento de estados do Lun
 
 Figura 1. Estrutura geral do funcionamento do gerenciamento de estados no Lunatik
 
-Como mostrado na figura 1, o gerenciamento de estados do Lunatik é oferecido tanto no espaço de usuário, com um binding para Lua, quanto para o Kernel, por meio de API que pode ser consumida pelos outros módulos do Kernel. Como indicado nas orientações das setas, tanto o binding quanto a API podem enviar e receber informações do módulo do Lunatik. Tais informações podem ser circunstanciais, isto é: trazem informações relacionadas os estados presentes no Lunatik. Como  podem ser de controle, requisitando que uma determinada operação seja realizada sobre a lista de estados do Lunatik ou sobre um determinado estado em específico.
+Como mostrado na figura 1, o gerenciamento de estados do Lunatik é oferecido tanto no espaço de usuário, com um binding para Lua, quanto para o Kernel, por meio de API que pode ser consumida pelos outros módulos do Kernel. Como indicado nas orientações das setas, tanto o binding quanto a API podem enviar e receber informações do módulo do Lunatik. Tais informações podem ser circunstanciais, isto é: trazem informações relacionadas os estados presentes no Lunatik, como  podem ser de controle, requisitando que uma determinada operação seja realizada sobre a lista de estados do Lunatik ou sobre um determinado estado em específico.
 
 Com o binding Lua o usuário pode realizar operações no kernel mesmo estando no espaço de usuário, isto é feito graças ao Generic Netlink, que permite, além de outras coisas, a comunicação entre processos do espaço de usuário e Kernel.
 
@@ -44,7 +44,7 @@ Assim como descrito na seção acima, o Lunatik possui o conceito de ambientes, 
 - **Busca de estados:** Realiza uma busca, em um determinado ambiente Lunatik, a partir de um nome. Se tal estado for encontrado então um ponteiro para ele é retornado, se o estado não existir então o valor NULL é retornado.
   - Assinatura da função sem ambiente associado: `lunatik_State *lunatik_statelookup(const char *name)`
   - Assinatura da função com ambiente associado: `lunatik_State *lunatik_netstatelookup(const char *name, struct net *env)`
-- **Obtenção de referência para o estado:** Incrementa o contador de referência de um determinado estado. Isso é importante pois um determinado estado pode ter sido criado em algum ponto do tempo e então você pode decidir realizar uma ação sobre esse estado (digamos executar um código em Lua), caso você não obtenha a referência ao estado e decida realizar a sua ação, pode ser que enquanto sua ação está sendo realizada alguém solicite que o estado que você está manipulando seja destruído, e caso a contagem de refência para ele for igual a 1 este estado será apagado. fazendo com que o seu acesso a memória seja inválido. Por conta disso essa é uma operação importante e evita tais situações, sendo assim, toda vez que for necessário fazer alguma operação no estado é necessário o incremento da contagem de referência para este estado. Retorna verdadeiro caso o incremento de referência tenha sido incrementado com sucesso e falso caso contrário (situação de overflow). Vale ressaltar que esta é uma operação associada ao ponteiro do estado em si, portanto o ambiente não é necessário nessa operação, afinal de contas se um determinado estado existe este já está associado a um ambiente.
+- **Obtenção de referência para o estado:** Incrementa o contador de referência de um determinado estado. Isso é importante pois um determinado estado pode ter sido criado em algum ponto do tempo e então você pode decidir realizar uma ação sobre esse estado (digamos executar um código em Lua), caso você não obtenha a referência ao estado e decida realizar a sua ação, pode ser que enquanto sua ação está sendo realizada alguém solicite que o estado que você está manipulando seja destruído, e caso a contagem de refência para ele for igual a 1 este estado será apagado. Fazendo com que o seu acesso a memória seja inválido. Por conta disso essa é uma operação importante e evita tais situações, sendo assim, toda vez que for necessário fazer alguma operação no estado é necessário o incremento da contagem de referência para este estado. Retorna verdadeiro caso o incremento de referência tenha sido incrementado com sucesso e falso caso contrário (situação de overflow). Vale ressaltar que esta é uma operação associada ao ponteiro do estado em si, portanto o ambiente não é necessário nessa operação, afinal de contas se um determinado estado existe este já está associado a um ambiente.
   - Assinatura da função: `bool lunatik_getstate(lunatik_State *state)`
  - **Devolução de referência:** Decrementa o contador de referência de um estado. Assim que uma determinada operação com o estado Lunatik for concluída, a referência obtida por meio da função `lunatik_getstate()` deve ser devolvida a fim de evitar inconsistências. Assim como a operação anterior, esta operação tem o ambiente implicitamente passado, pois ele está ligado ao estado passado à função, tornando desnecessário a passagem deste parâmetro para a função.
 	 - Assinatura da função: `void lunatik_putstate(lunatik_State *state)`
@@ -83,7 +83,7 @@ enum lunatik_packet_type {
 };
 ``` 
 ## Operações
-Nesta seção será discutido os detalhes de implementação dos pacotes das operações. Para isso precisamos entender quais são os tipos de operações disponíveis no gerenciamento de estado, que está definido na enumeração `enum lunatik_operations`   e que possui seu representante na `struct lunatik_packet` chamado de `operation`.
+Nesta seção será discutido os detalhes de implementação dos pacotes das operações realizadas no espaço de usuário. Para isso precisamos entender quais são os tipos de operações disponíveis no gerenciamento de estado, que está definido na enumeração `enum lunatik_operations`   e que possui seu representante na `struct lunatik_packet` chamado de `operation`.
 ```c
 enum lunatik_operations {
 	LUNATIK_NEWSTATE = 1,
@@ -100,6 +100,13 @@ Operação responsável pela criação de estados, e assim como definido na seç
 ### `LUNATIK_CLOSE`
 Operação responsável pela deleção de estados existentes, essa operação não necessita de nenhum valor associado além dos presentes na estrutura `struct lunatik_packet`. 
 ### `LUNATIK_DOSTRING`
+Operação utilizada para execução de códigos em Lua nos estados Lunatik. Para que tal operação possa ser realizada é necessário informar o nome do estado tal que o código será executado, juntamente com o nome, o código em si também precisa ser enviado para o estado, e tal informação é passada por meio do campo `associated_value`. 
+### `LUNATIK_GETSTATE`
+Operação responsável pela obtenção dos estados já existentes no kernel. Essa operação necessita somente do nome do estado para ser realizada.
+### `LUNATIK_PUTSTATE`
+Operação utilizada para devolução de referências de estados adquiridos por meio da operação `LUNATIK_GETSTATE`, também necessita somente da informação do nome do estado a ser devolvido a referência.
+### `LUNATIK_DATA`
+Operação responsável pelo envio de dados binários para os estados no kernel, é necessário enviar o nome do estado a se enviar o dado e o dado em si será enviado no campo `associated_value`.
 
 
 ## <a name="glossary"></a>Glossário
