@@ -33,7 +33,7 @@ Vale ressaltar também que os ambientes estão sempre associados aos namespaces 
 
 ## Operações oferecidas pela API
 
-Assim como descrito na seção acima, o Lunatik possui o conceito de ambientes, provendo assim um isolamento de recursos. Além disso, as operações oferecidas pelo gerenciamento de estados podem estar associadas a um determinado ambiente ou não. De fato, mesmo que o usuário não cite explicitamente um determinado ambiente, o ambiente padrão será escolhido, fazendo com que todas as operações estejam associadas a um ambiente, mesmo que implicitamente. Isso faz com que todas as operações no gerenciamento de estados possuam duas variantes, uma envolvendo um ambiente explícito, indicado pelo usuário através de um `net namespace` e outra que de forma abstrata não envolve ambientes, e consequentemente o ambiente não precisa ser informado pelo usuário. Para maiores informações relacionadas à assinaturas de funções consultar [API](#api])
+Assim como descrito na seção acima, o Lunatik possui o conceito de ambientes, provendo assim um isolamento de recursos. Além disso, as operações oferecidas pelo gerenciamento de estados podem estar associadas a um determinado ambiente ou não. De fato, mesmo que o usuário não cite explicitamente um determinado ambiente, o ambiente padrão será escolhido, fazendo com que todas as operações estejam associadas a um ambiente, mesmo que implicitamente. Isso faz com que todas as operações no gerenciamento de estados possuam duas variantes, uma envolvendo um ambiente explícito, indicado pelo usuário através de um `net namespace` e outra que de forma abstrata não envolve ambientes, e consequentemente o ambiente não precisa ser informado pelo usuário. Para maiores informações relacionadas à assinaturas de funções consultar [API](#api)
 
 - **Criação de estados:** Cria um estado Lunatik no kernel a partir de um nome e um alocamento máximo de memória no Kernel (Veja [aqui](#estado_lunatik) maiores informaçõe sobre estados Lunatik). O nome servirá como identificador único do estado e o alocamento máximo de memória representa a quantidade máxima de memória que o estado poderá utilizar. Retorna um ponteiro para o estado lunatik em caso de sucesso e NULL caso contrário.
 - **Exclusão de estados:** Exclui, a partir de um nome, um estado Lunatik. Essa exclusão é feita removendo o estado da estrutura de armazenamento de estados do ambiente Lunatik e só pode ser realizada caso só exista uma única refêrencia ao estado. Caso contrário, mesmo que a operação seja solicitada pelo usuário, nenhuma alteração na estrutura de armazenamento de estados do Lunatik ocorrerá. Retorna 0 caso o estado tenha sido excluído e um número negativo caso contrário.
@@ -100,7 +100,7 @@ Operação utilizada para devolução de referências de estados adquiridos por 
 ### `LUNATIK_DATA`
 Operação responsável pelo envio de dados binários para os estados no kernel, é necessário enviar o nome do estado a se enviar o dado e o dado em si será enviado no campo `associated_value`.
 
-## <a name="API"></a>API
+## API
 Definição das funções, seus parâmetros e retornos.
 
 ### Funções com ambientes implícitos:
