@@ -33,21 +33,13 @@ Vale ressaltar também que os ambientes estão sempre associados aos namespaces 
 
 ## Operações oferecidas pela API
 
-Assim como descrito na seção acima, o Lunatik possui o conceito de ambientes, provendo assim um isolamento de recursos. Além disso, as operações oferecidas pelo gerenciamento de estados podem estar associadas a um determinado ambiente ou não. De fato, mesmo que o usuário não cite explicitamente um determinado ambiente, o ambiente padrão será escolhido, fazendo com que todas as operações estejam associadas a um ambiente, mesmo que implicitamente. Isso faz com que todas as operações no gerenciamento de estados possuam duas variantes, uma envolvendo um ambiente explícito, indicado pelo usuário através de um `net namespace` e outra que de forma abstrata não envolve ambientes, e consequentemente o ambiente não precisa ser informado pelo usuário.
+Assim como descrito na seção acima, o Lunatik possui o conceito de ambientes, provendo assim um isolamento de recursos. Além disso, as operações oferecidas pelo gerenciamento de estados podem estar associadas a um determinado ambiente ou não. De fato, mesmo que o usuário não cite explicitamente um determinado ambiente, o ambiente padrão será escolhido, fazendo com que todas as operações estejam associadas a um ambiente, mesmo que implicitamente. Isso faz com que todas as operações no gerenciamento de estados possuam duas variantes, uma envolvendo um ambiente explícito, indicado pelo usuário através de um `net namespace` e outra que de forma abstrata não envolve ambientes, e consequentemente o ambiente não precisa ser informado pelo usuário. Para maiores informações relacionadas à assinaturas de funções consultar [API](#api])
 
 - **Criação de estados:** Cria um estado Lunatik no kernel a partir de um nome e um alocamento máximo de memória no Kernel (Veja [aqui](#estado_lunatik) maiores informaçõe sobre estados Lunatik). O nome servirá como identificador único do estado e o alocamento máximo de memória representa a quantidade máxima de memória que o estado poderá utilizar. Retorna um ponteiro para o estado lunatik em caso de sucesso e NULL caso contrário.
-  - Assinatura da função sem ambiente associado: `lunatik_State *lunatik_newstate(const char *name, size_t maxalloc)`
-  - Assinatura da função com ambiente associado: `lunatik_State *lunatik_netnewstate(const char *name, size_t maxalloc, struct net *env)`
 - **Exclusão de estados:** Exclui, a partir de um nome, um estado Lunatik. Essa exclusão é feita removendo o estado da estrutura de armazenamento de estados do ambiente Lunatik e só pode ser realizada caso só exista uma única refêrencia ao estado. Caso contrário, mesmo que a operação seja solicitada pelo usuário, nenhuma alteração na estrutura de armazenamento de estados do Lunatik ocorrerá. Retorna 0 caso o estado tenha sido excluído e um número negativo caso contrário.
-  - Assinatura da função sem ambiente associado: `int lunatik_close(const char *name)`
-  - Assinatura da função com ambiente associado: `int lunatik_netclosestate(const char *name, struct net *env)`
 - **Busca de estados:** Realiza uma busca, em um determinado ambiente Lunatik, a partir de um nome. Se tal estado for encontrado então um ponteiro para ele é retornado, se o estado não existir então o valor NULL é retornado.
-  - Assinatura da função sem ambiente associado: `lunatik_State *lunatik_statelookup(const char *name)`
-  - Assinatura da função com ambiente associado: `lunatik_State *lunatik_netstatelookup(const char *name, struct net *env)`
 - **Obtenção de referência para o estado:** Incrementa o contador de referência de um determinado estado. Isso é importante pois um determinado estado pode ter sido criado em algum ponto do tempo e então você pode decidir realizar uma ação sobre esse estado (digamos executar um código em Lua), caso você não obtenha a referência ao estado e decida realizar a sua ação, pode ser que enquanto sua ação está sendo realizada alguém solicite que o estado que você está manipulando seja destruído, e caso a contagem de refência para ele for igual a 1 este estado será apagado. Fazendo com que o seu acesso a memória seja inválido. Por conta disso essa é uma operação importante e evita tais situações, sendo assim, toda vez que for necessário fazer alguma operação no estado é necessário o incremento da contagem de referência para este estado. Retorna verdadeiro caso o incremento de referência tenha sido incrementado com sucesso e falso caso contrário (situação de overflow). Vale ressaltar que esta é uma operação associada ao ponteiro do estado em si, portanto o ambiente não é necessário nessa operação, afinal de contas se um determinado estado existe este já está associado a um ambiente.
-  - Assinatura da função: `bool lunatik_getstate(lunatik_State *state)`
  - **Devolução de referência:** Decrementa o contador de referência de um estado. Assim que uma determinada operação com o estado Lunatik for concluída, a referência obtida por meio da função `lunatik_getstate()` deve ser devolvida a fim de evitar inconsistências. Assim como a operação anterior, esta operação tem o ambiente implicitamente passado, pois ele está ligado ao estado passado à função, tornando desnecessário a passagem deste parâmetro para a função.
-	 - Assinatura da função: `void lunatik_putstate(lunatik_State *state)`
 
 ## Protocolo de comunicação user space-kernel
 
@@ -108,6 +100,60 @@ Operação utilizada para devolução de referências de estados adquiridos por 
 ### `LUNATIK_DATA`
 Operação responsável pelo envio de dados binários para os estados no kernel, é necessário enviar o nome do estado a se enviar o dado e o dado em si será enviado no campo `associated_value`.
 
+## <a name="API"></a>API
+Definição das funções, seus parâmetros e retornos.
+
+### Funções com ambientes implícitos:
+- **Criação de estado:** 
+	- Parâmetros:
+		`name`: Nome do estado, serve como identificador único do estado.
+		`maxalloc`: Número que representa, em bytes, a quantidade máxima de memória que o estado a ser criado pode alocar no kernel.
+	- Retorno: Em caso de sucesso, retorna um ponteiro para o estado criado. Retorna `NULL` caso o estado não possa ser criado.
+	- Assinatura: `lunatik_State *lunatik_newstate(const char *name, size_t maxalloc)`
+- **Exclusão de estado:**
+	- Parâmetros: 
+		`name`: Nome do estado a ser excluído
+	- Retorno: Retorna 0 em caso de sucesso e um número diferente de 0 caso contrário.
+	- Assinatura: `int lunatik_close(const char *name)`
+- **Busca de estado:**
+	- Parâmetros:
+		`name`: Nome do estado a ser procurado.
+	- Retorno: Caso o estado exista, retorna um ponteiro para este. Retorna `NULL` caso contrário.
+	- Assinatura: `lunatik_State *lunatik_statelookup(const char *name)`
+
+### Funções com ambientes explícitos:
+- **Criação de estado:**
+	- Parâmetros:
+		`name`: Nome do estado a ser criado, utilizado como identificador único para o estado naquele ambiente.
+		`maxalloc`: Número que representa, em bytes, a quantidade máxima de memória que o estado a ser criado pode alocar no kernel.
+		`env`: Ambiente no qual o estado será criado.
+	- Retorno: Caso o estado seja criado com sucesso, retorna um ponteiro para o estado. Retorna `NULL` caso contrário.
+	- Assinatura: `lunatik_State *lunatik_netnewstate(const char *name, size_t maxalloc, struct net *env)`
+- **Exclusão de estado:**
+	- Parâmetros:
+		`name`: Nome do estado a ser fechado.
+		`env`: Ambiente a se procurar o estado a ser fechado pelo `name`.
+	- Retorno: Retorna 0 caso o estado seja fechado com sucesso e um número diferente de 0 caso contrário.
+	- Assinatura: `int lunatik_netclosestate(const char *name, struct net *env)`
+- **Busca de estado:**
+	- Parâmetros:
+		`name`: Nome do estado a ser procurado.
+		`env`: Ambiente a se procurar o estado pelo `name`.
+	- Retorno: Retorna um ponteiro para o estado caso este exista no ambiente `env` ou `NULL` caso contrário.
+	- Assinatura: `lunatik_State *lunatik_netstatelookup(const char *name, struct net *env)`
+
+### Funções independentes de ambientes:
+
+- **Obtenção de referência de um estado:**
+	- Parâmetros:
+		`state`: Ponteiro para o estado cuja a referência quer se obter.
+	- Retorno: `true` caso a referência seja obtida com sucesso e `false` caso contrário.
+	- Assinatura: `bool lunatik_getstate(lunatik_State *state)`
+- **Devolução de referência de um estado:**
+	- Parâmetros:
+		`state`: Ponteiro para o estado cuja a referência quer se devolver.
+	- Retorno: `true` caso a referência seja devolvida com sucesso e `false` caso contrário.
+	- Assinatura: `bool lunatik_getstate(lunatik_State *state)`
 
 ## <a name="glossary"></a>Glossário
 
