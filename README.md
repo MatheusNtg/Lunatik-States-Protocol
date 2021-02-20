@@ -5,19 +5,36 @@
 
 Este documento tem por objetivo definir e documentar o funcionamento do protocolo de gerenciamento de estados do Lunatik (Lunatik States Management Protocol). Este protocolo por sua vez tem o propósito de oferecer uma interface para as operações relacionadas a estados no ambiente do Lunatik, tanto para o Kernel por meio de uma **API** quanto para o espaço de usuário por meio de um **binding** Lua. 
 
+## Motivação
+Para entendermos a motivação por trás do gerenciamento de estados Lunatik primeiro precisamos entender alguns conceitos, como: O que é o Lunatik e o que são estados Lua.
+
+### Lunatik
+Segundo ["Scriptable Operating Systems with Lua"](https://www.netbsd.org/~lneto/dls14.pdf) o Lunatik é:
+> "A small subsystem that provides a programming and execution environment for OS kernel scripting based on the Lua programming language"
+
+Podemos pensar no Lunatik como a implementação da linguagem Lua para ser executada no kernel, oferecendo um interpretador Lua que difere da implementação original apenas pelas limitações que o kernel impõe e que estão descritas [aqui](https://github.com/luainkernel/lunatik/tree/master/doc).
+
+### Estados Lua
+Para a realização de bindings, Lua utiliza o conceito de estados Lua, que nada mais são do que instâncias do ambiente de execução de um determinado programa Lua: [Programming in Lua : 24.1](http://www.lua.org/pil/24.1.html). A partir destes estados é possível acessar o contexto em que um determinado programa Lua está rodando e com isso realizar todas as alterações desejadas.  Assim como a implementação padrão de Lua, o Lunatik segue a mesma lógica de estados Lua para realizar as suas operações.
+
+### Gerenciamento de estados
+
+Imagine que você queira desenvolvedor um módulo para o kernel composto por vários componentes independentes e que cada componente precise acessar o mesmo estado Lua. Uma forma de fazer isso é encapsular o estado Lua em uma estrutura global relativa ao seu programa onde cada componente poderá ter acesso a este estado. Um problema claro desta abordagem é que o estado em questão pode facilmente sofrer de condição de corrida, forçando você a desenvolver um esquema de gerenciamento de concorrência para este estado. Este protocolo é desenvolvido com o intuito de sanar este tipo de problema, além de facilitar a comunicação entre o kernel e o espaço de usuário para o carregamento de código lua nos estados presentes no Lunatik.
+
+
 ## Estrutura básica
 
 A figura a seguir apresenta a estrutura geral do gerenciamento de estados do Lunatik:
 
-![enter image description here](https://i.ibb.co/dmtTbVQ/estrutura-geral-1.png)
+![enter image description here](https://svgshare.com/i/UEi.svg)
 
 Figura 1. Estrutura geral do funcionamento do gerenciamento de estados no Lunatik
 
-Como mostrado na figura 1, o gerenciamento de estados do Lunatik é oferecido tanto no espaço de usuário, com um binding para Lua, quanto para o Kernel, por meio de API que pode ser consumida pelos outros módulos do Kernel. Como indicado nas orientações das setas, tanto o binding quanto a API podem enviar e receber informações do módulo do Lunatik. Tais informações podem ser circunstanciais, isto é: trazem informações relacionadas os estados presentes no Lunatik, como  podem ser de controle, requisitando que uma determinada operação seja realizada sobre a lista de estados do Lunatik ou sobre um determinado estado em específico.
+Como mostrado na figura 1, o gerenciamento de estados do Lunatik é oferecido tanto no espaço de usuário, com um binding para Lua, quanto para o Kernel, por meio de API que pode ser consumida pelos outros módulos do Kernel. Como indicado nas orientações das setas, tanto o binding quanto a API podem enviar e receber informações do módulo do Lunatik. Tais informações podem ser de dados como podem ser de controle, requisitando que uma determinada operação seja realizada sobre a lista de estados do Lunatik ou sobre um determinado estado em específico.
 
-Com o binding Lua o usuário pode realizar operações no kernel mesmo estando no espaço de usuário, isto é feito graças ao Generic Netlink, que permite, além de outras coisas, a comunicação entre processos do espaço de usuário e Kernel.
+Com o binding Lua, o usuário pode realizar operações no kernel mesmo estando no espaço de usuário, isto é feito graças ao Generic Netlink, que permite, além de outras coisas, a comunicação entre processos do espaço de usuário e Kernel.
 
-Já a API de gerenciamento de estados provê uma interface para o controle dos estados presentes no Lunatik. Isso facilita a vida do desenvolvedor dos módulos do Kernel que fazem o uso do Lunatik, uma vez que estes desenvolvedores não precisam se preocupar com o gerenciamento dos estados Lua que estão utilizando.
+Já a API de gerenciamento de estados provê uma interface para o controle dos estados presentes no Lunatik.
 
 ## Ambientes Lunatik
 O gerenciamento de estados do Lunatik é feito em seus respectivos ambientes, cada ambiente possui seu próprio conjunto de estados fazendo com que os ambientes sejam isolados entre si, a figura 2 dá uma noção em alto nível como é feito esse isolamento. Para maiores informações sobre ambientes Lunatik consulte o glossário [aqui](#ambientes_lunatik).
@@ -57,15 +74,15 @@ struct lunatik_packet {
 	enum lunatik_packet_type type;
 	enum lunatik_operations operation;
 	size_t len;
-	void *associated_value;
+	void *args;
 };
 ```
-Cujos os campos têm os significados:
-- `state_name`: O nome do estado cujo a operação será realizada;
+Estes campos têm os seguintes significados:
+- `state_name`: O nome do estado em que a operação será realizada;
 - `type`: O tipo do pacote lunatik;
 - `operation`: A operação a ser realizada no gerenciador de estados;
 - `len`: O tamanho do pacote;
-- `associated_value`: Ponteiro para valores associados a determinadas operações que precisam de dados extras aos fornecidos na estrutura.
+- `args`: Ponteiro para valores associados a determinadas operações que precisam de dados extras aos fornecidos na estrutura.
 ## Tipos de pacotes:
 Como dito na seção anterior, só existem dois tipos de pacotes, sendo eles os de controle e os de dados, dessa forma, o campo `type` da estrutura `struct lunatik_packet` tem o seguinte formato:
 ```c
@@ -88,17 +105,17 @@ enum lunatik_operations {
 ```
 Uma vez definido os tipos de operações presentes nos pacotes podemos especificar os detalhes de cada uma delas.
 ### `LUNATIK_NEWSTATE`
-Operação responsável pela criação de estados, e assim como definido na seção de operações oferecidas pelo gerenciamento de estados, essa operação necessita do nome do estado que servirá como ID para o estado e de um alocamento máximo de memória que será usado para determinar qual será o valor máximo de memória que este estado poderá utilizar no kernel.  Para realizar tal funcionalidade, o campo `associated_value` desta operação aponta para o alocamento máximo utilizado pelo estado.
+Operação responsável pela criação de estados, e assim como definido na seção de operações oferecidas pelo gerenciamento de estados, essa operação necessita do nome do estado que servirá como ID para o estado e de um alocamento máximo de memória que será usado para determinar qual será o valor máximo de memória que este estado poderá utilizar no kernel.  Para realizar tal funcionalidade, o campo `args` desta operação aponta para o alocamento máximo utilizado pelo estado.
 ### `LUNATIK_CLOSE`
-Operação responsável pela deleção de estados existentes, essa operação não necessita de nenhum valor associado além dos presentes na estrutura `struct lunatik_packet`. 
+Operação responsável pela tentativa de deleção de estados existentes, essa operação não necessita de nenhum valor associado além dos presentes na estrutura `struct lunatik_packet`. 
 ### `LUNATIK_DOSTRING`
-Operação utilizada para execução de códigos em Lua nos estados Lunatik. Para que tal operação possa ser realizada é necessário informar o nome do estado tal que o código será executado, juntamente com o nome, o código em si também precisa ser enviado para o estado, e tal informação é passada por meio do campo `associated_value`. 
+Operação utilizada para execução de códigos em Lua nos estados Lunatik. Para que tal operação possa ser realizada é necessário informar o nome do estado tal que o código será executado, juntamente com o nome, o código em si também precisa ser enviado para o estado, e tal informação é passada por meio do campo `args`. 
 ### `LUNATIK_GETSTATE`
 Operação responsável pela obtenção dos estados já existentes no kernel. Essa operação necessita somente do nome do estado para ser realizada.
 ### `LUNATIK_PUTSTATE`
 Operação utilizada para devolução de referências de estados adquiridos por meio da operação `LUNATIK_GETSTATE`, também necessita somente da informação do nome do estado a ser devolvido a referência.
 ### `LUNATIK_DATA`
-Operação responsável pelo envio de dados binários para os estados no kernel, é necessário enviar o nome do estado a se enviar o dado e o dado em si será enviado no campo `associated_value`.
+Operação responsável pelo envio de dados binários para os estados no kernel, é necessário enviar o nome do estado a se enviar o dado e o dado em si será enviado no campo `args`.
 
 ## API
 Definição das funções, seus parâmetros e retornos.
@@ -153,7 +170,7 @@ Definição das funções, seus parâmetros e retornos.
 	- Parâmetros:
 		`state`: Ponteiro para o estado cuja a referência quer se devolver.
 	- Retorno: `true` caso a referência seja devolvida com sucesso e `false` caso contrário.
-	- Assinatura: `bool lunatik_getstate(lunatik_State *state)`
+	- Assinatura: `bool lunatik_getstate(lunatik_State *state)`são mostradas a seguir:
 
 ## <a name="glossary"></a>Glossário
 
