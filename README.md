@@ -138,13 +138,13 @@ session = lunatik.session()
 Aqui estão descritas as operações disponíveis neste userdata:
 - **Criação de estados:**
 	- Parâmetros:
-	`name`: Nome do estado a ser criado.
-	`maxalloc`: Total de memória, em bytes, que o estado pode alocar no kernel. Caso nenhum valor seja informado o valor padrão `lunatik.defaultmaxallocbytes` será associado.
+		- `name`: Nome do estado a ser criado.
+		- `maxalloc`: Total de memória, em bytes, que o estado pode alocar no kernel. Caso nenhum valor seja informado o valor padrão `lunatik.defaultmaxallocbytes` será associado.
 	- Retorno: Um userdata representando o estado criado em caso de sucesso e `nil` caso contrário.
 	- Assinatura: `session:newstate(name [, maxalloc])`
  - **Fecha a sessão**:
 	 - Parâmetros:
-	 Nenhum
+	 	- Nenhum
 	 - Retorno: Retorna `true` caso a sessão seja fechada com sucesso e `nil` caso contrário.
 	 - Assinatura: `session:close()`
  - **Obtém um estado no kernel**:
@@ -154,7 +154,7 @@ Aqui estão descritas as operações disponíveis neste userdata:
 	 - Assinatura: `session:getstate(name)`
 - **Listagem de estados**:
 	- Parâmetros:
-	Nenhum
+		- Nenhum
 	- Retorno: Uma tabela com cada elemento representando um estado presente no ambiente padrão do Lunatik. Cada elemento tem o seguinte formato:
 	```lua
 	{
@@ -170,39 +170,39 @@ Definição das funções, seus parâmetros e retornos.
 ### Funções com ambientes implícitos:
 - **Criação de estado:** 
 	- Parâmetros:
-		`name`: Nome do estado, serve como identificador único do estado.
-		`maxalloc`: Número que representa, em bytes, a quantidade máxima de memória que o estado a ser criado pode alocar no kernel.
+		- `name`: Nome do estado, serve como identificador único do estado.
+		- `maxalloc`: Número que representa, em bytes, a quantidade máxima de memória que o estado a ser criado pode alocar no kernel.
 	- Retorno: Em caso de sucesso, retorna um ponteiro para o estado criado. Retorna `NULL` caso o estado não possa ser criado.
 	- Assinatura: `lunatik_State *lunatik_newstate(const char *name, size_t maxalloc)`
 - **Exclusão de estado:**
 	- Parâmetros: 
-		`name`: Nome do estado a ser excluído
+		- `name`: Nome do estado a ser excluído
 	- Retorno: Retorna 0 em caso de sucesso e um número diferente de 0 caso contrário.
 	- Assinatura: `int lunatik_close(const char *name)`
 - **Busca de estado:**
 	- Parâmetros:
-		`name`: Nome do estado a ser procurado.
+		- `name`: Nome do estado a ser procurado.
 	- Retorno: Caso o estado exista, retorna um ponteiro para este. Retorna `NULL` caso contrário.
 	- Assinatura: `lunatik_State *lunatik_statelookup(const char *name)`
 
 ### Funções com ambientes explícitos:
 - **Criação de estado:**
 	- Parâmetros:
-		`name`: Nome do estado a ser criado, utilizado como identificador único para o estado naquele ambiente.
-		`maxalloc`: Número que representa, em bytes, a quantidade máxima de memória que o estado a ser criado pode alocar no kernel.
-		`env`: Ambiente no qual o estado será criado.
+		- `name`: Nome do estado a ser criado, utilizado como identificador único para o estado naquele ambiente.
+		- `maxalloc`: Número que representa, em bytes, a quantidade máxima de memória que o estado a ser criado pode alocar no kernel.
+		- `env`: Ambiente no qual o estado será criado.
 	- Retorno: Caso o estado seja criado com sucesso, retorna um ponteiro para o estado. Retorna `NULL` caso contrário.
 	- Assinatura: `lunatik_State *lunatik_netnewstate(const char *name, size_t maxalloc, struct net *env)`
 - **Exclusão de estado:**
 	- Parâmetros:
-		`name`: Nome do estado a ser fechado.
-		`env`: Ambiente a se procurar o estado a ser fechado pelo `name`.
+		- `name`: Nome do estado a ser fechado.
+		- `env`: Ambiente a se procurar o estado a ser fechado pelo `name`.
 	- Retorno: Retorna 0 caso o estado seja fechado com sucesso e um número diferente de 0 caso contrário.
 	- Assinatura: `int lunatik_netclosestate(const char *name, struct net *env)`
 - **Busca de estado:**
 	- Parâmetros:
-		`name`: Nome do estado a ser procurado.
-		`env`: Ambiente a se procurar o estado pelo `name`.
+		- `name`: Nome do estado a ser procurado.
+		- `env`: Ambiente a se procurar o estado pelo `name`.
 	- Retorno: Retorna um ponteiro para o estado caso este exista no ambiente `env` ou `NULL` caso contrário.
 	- Assinatura: `lunatik_State *lunatik_netstatelookup(const char *name, struct net *env)`
 
@@ -210,12 +210,12 @@ Definição das funções, seus parâmetros e retornos.
 
 - **Obtenção de referência de um estado:**
 	- Parâmetros:
-		`state`: Ponteiro para o estado cuja a referência quer se obter.
+		- `state`: Ponteiro para o estado cuja a referência quer se obter.
 	- Retorno: `true` caso a referência seja obtida com sucesso e `false` caso contrário.
 	- Assinatura: `bool lunatik_getstate(lunatik_State *state)`
 - **Devolução de referência de um estado:**
 	- Parâmetros:
-		`state`: Ponteiro para o estado cuja a referência quer se devolver.
+		- `state`: Ponteiro para o estado cuja a referência quer se devolver.
 	- Retorno: `true` caso a referência seja devolvida com sucesso e `false` caso contrário.
 	- Assinatura: `bool lunatik_getstate(lunatik_State *state)`são mostradas a seguir:
 
