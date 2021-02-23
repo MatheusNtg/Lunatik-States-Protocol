@@ -74,15 +74,15 @@ struct lunatik_packet {
 	enum lunatik_packet_type type;
 	enum lunatik_operations operation;
 	size_t len;
-	void *args;
+	void *associated_value;
 };
 ```
-Estes campos têm os seguintes significados:
-- `state_name`: O nome do estado em que a operação será realizada;
+Cujos os campos têm os significados:
+- `state_name`: O nome do estado cujo a operação será realizada;
 - `type`: O tipo do pacote lunatik;
 - `operation`: A operação a ser realizada no gerenciador de estados;
 - `len`: O tamanho do pacote;
-- `args`: Ponteiro para valores associados a determinadas operações que precisam de dados extras aos fornecidos na estrutura.
+- `associated_value`: Ponteiro para valores associados a determinadas operações que precisam de dados extras aos fornecidos na estrutura.
 ## Tipos de pacotes:
 Como dito na seção anterior, só existem dois tipos de pacotes, sendo eles os de controle e os de dados, dessa forma, o campo `type` da estrutura `struct lunatik_packet` tem o seguinte formato:
 ```c
@@ -105,18 +105,65 @@ enum lunatik_operations {
 ```
 Uma vez definido os tipos de operações presentes nos pacotes podemos especificar os detalhes de cada uma delas.
 ### `LUNATIK_NEWSTATE`
-Operação responsável pela criação de estados, e assim como definido na seção de operações oferecidas pelo gerenciamento de estados, essa operação necessita do nome do estado que servirá como ID para o estado e de um alocamento máximo de memória que será usado para determinar qual será o valor máximo de memória que este estado poderá utilizar no kernel.  Para realizar tal funcionalidade, o campo `args` desta operação aponta para o alocamento máximo utilizado pelo estado.
+Operação responsável pela criação de estados, e assim como definido na seção de operações oferecidas pelo gerenciamento de estados, essa operação necessita do nome do estado que servirá como ID para o estado e de um alocamento máximo de memória que será usado para determinar qual será o valor máximo de memória que este estado poderá utilizar no kernel.  Para realizar tal funcionalidade, o campo `associated_value` desta operação aponta para o alocamento máximo utilizado pelo estado.
 ### `LUNATIK_CLOSE`
-Operação responsável pela tentativa de deleção de estados existentes, essa operação não necessita de nenhum valor associado além dos presentes na estrutura `struct lunatik_packet`. 
+Operação responsável pela deleção de estados existentes, essa operação não necessita de nenhum valor associado além dos presentes na estrutura `struct lunatik_packet`. 
 ### `LUNATIK_DOSTRING`
-Operação utilizada para execução de códigos em Lua nos estados Lunatik. Para que tal operação possa ser realizada é necessário informar o nome do estado tal que o código será executado, juntamente com o nome, o código em si também precisa ser enviado para o estado, e tal informação é passada por meio do campo `args`. 
+Operação utilizada para execução de códigos em Lua nos estados Lunatik. Para que tal operação possa ser realizada é necessário informar o nome do estado tal que o código será executado, juntamente com o nome, o código em si também precisa ser enviado para o estado, e tal informação é passada por meio do campo `associated_value`. 
 ### `LUNATIK_GETSTATE`
 Operação responsável pela obtenção dos estados já existentes no kernel. Essa operação necessita somente do nome do estado para ser realizada.
 ### `LUNATIK_PUTSTATE`
 Operação utilizada para devolução de referências de estados adquiridos por meio da operação `LUNATIK_GETSTATE`, também necessita somente da informação do nome do estado a ser devolvido a referência.
 ### `LUNATIK_DATA`
-Operação responsável pelo envio de dados binários para os estados no kernel, é necessário enviar o nome do estado a se enviar o dado e o dado em si será enviado no campo `args`.
+Operação responsável pelo envio de dados binários para os estados no kernel, é necessário enviar o nome do estado a se enviar o dado e o dado em si será enviado no campo `associated_value`.
 
+## Binding Lunatik
+
+Definição das constantes e funções do binding, seus parâmetros e retornos.
+
+### Constantes
+
+- `lunatik.datamaxsize`: Inteiro que representa a quantidade máxima em bytes de dados que um estado pode receber por mensagem.
+- `lunatik.defaultmaxallocbytes`: Inteiro que representa o alocamento padrão, em bytes, de um estado.
+- `lunatik.maxstates`: Inteiro que representa a quantidade máxima de estados que o Lunatik pode ter por ambiente.
+- `lunatik.statenamemaxsize`: Inteiro que representa o tamanho máximo permitido da string utilizada para a criação do estado. 
+
+### Sessão Lunatik
+Para realizar as operações presentes no binding Lunatik é necessário primeiro estabelecer uma sessão de comunicação com o Lunatik. A função responsável por estabelecer tal sessão é a `lunatik.session()` e um exemplo de seu uso é mostrado a seguir.
+- Retorno: Userdata utilizado para acessar os métodos de controle do gerenciados de estados.
+```lua
+local lunatik = require'lunatik'
+session = lunatik.session()
+```
+Aqui estão descritas as operações disponíveis neste userdata:
+- **Criação de estados:**
+	- Parâmetros:
+	`name`: Nome do estado a ser criado.
+	`maxalloc`: Total de memória, em bytes, que o estado pode alocar no kernel. Caso nenhum valor seja informado o valor padrão `lunatik.defaultmaxallocbytes` será associado.
+	- Retorno: Um userdata representando o estado criado em caso de sucesso e `nil` caso contrário.
+	- Assinatura: `session:newstate(name [, maxalloc])`
+ - **Fecha a sessão**:
+	 - Parâmetros:
+	 Nenhum
+	 - Retorno: Retorna `true` caso a sessão seja fechada com sucesso e `nil` caso contrário.
+	 - Assinatura: `session:close()`
+ - **Obtém um estado no kernel**:
+	 - Parâmetros:
+		 - `name`: Nome do estado a se obter
+	 - Retorno: Um userdata para realizar as operações disponíveis para o estado requisitado ou `nil` caso tal estado não exista no kernel.
+	 - Assinatura: `session:getstate(name)`
+- **Listagem de estados**:
+	- Parâmetros:
+	Nenhum
+	- Retorno: Uma tabela com cada elemento representando um estado presente no ambiente padrão do Lunatik. Cada elemento tem o seguinte formato:
+	```lua
+	{
+		name = "Nome do estado",
+		current_alloc = 43215,
+		max_alloc = 50000
+	}
+	```
+	- Assinatura: `session:list()`
 ## API
 Definição das funções, seus parâmetros e retornos.
 
@@ -171,6 +218,9 @@ Definição das funções, seus parâmetros e retornos.
 		`state`: Ponteiro para o estado cuja a referência quer se devolver.
 	- Retorno: `true` caso a referência seja devolvida com sucesso e `false` caso contrário.
 	- Assinatura: `bool lunatik_getstate(lunatik_State *state)`são mostradas a seguir:
+
+
+
 
 ## <a name="glossary"></a>Glossário
 
