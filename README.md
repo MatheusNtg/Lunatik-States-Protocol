@@ -30,6 +30,7 @@ Fig 2. Estrutura geral dos namespaces Lunatik
 Vale ressaltar também que os namespaces Lunatik são construídos em cima dos net namespaces do linux, esta escolha implica que a execução da API em um determinado namespace fará a API ter acesso somente aos estados que estão presente naquele namespace, assim como ilustrado na figura a seguir.
 
 ![Fig2. Estrutura geral dos ambientes Lunatik](https://i.ibb.co/ykwy2J4/diagramas-namespace-kernel-user-space.png)
+
 Fig. 3: Acesso da API em cada namespace
 
 ## Protocolo de comunicação
