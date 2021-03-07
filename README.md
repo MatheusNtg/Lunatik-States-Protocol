@@ -88,7 +88,7 @@ enum lunatik_attrs {
 
 ### Criação de estados
 
-Representado pela enumeração `LUNATIK_NEWSTATE` esta é a operação responsável pela criação de estados no kernel a partir do user space e também por oferecer ao usuário uma estrutura opaca que represente o estado presente no kernel com suas possíveis operações que são: Envio de código para este estado, envio de dados para este estado e encerramento de conexão com este estado entre o kernel e o user space.
+Representado pela enumeração `LUNATIK_NEWSTATE` esta é a operação responsável pela criação de estados no kernel a partir do user space e também por oferecer ao usuário uma estrutura opaca que represente o estado presente no kernel com suas possíveis operações que são: Envio de código e envio de dados para este estado no kernel além de encerramento de conexão com este estado entre o kernel e o user space.
 
 A fim de realizar tal operação primeiro precisamos criar um socket netlink que irá realizar a comunicação entre o kernel e o user space, com a libnl podemos fazer isso da seguinte forma:
 ```c
